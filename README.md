@@ -1,6 +1,6 @@
 # Improving Chest X-ray Nodule Segmentation via CT-Derived Multi-View Projections
 
-📄 **[Read the full research paper here](./x-ray-nodule-detection.pdf)**
+📄 **[Read the full research here](./x-ray-nodule-detection.pdf)**
 
 ## Overview
 Detecting lung nodules in chest X-ray images is fundamentally challenging due to overlapping anatomical structures and the scarcity of pixel-level annotations. While Computed Tomography (CT) provides precise 3D nodule labels, it involves higher radiation exposure and is less accessible. 
