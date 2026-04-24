@@ -12,6 +12,15 @@ Scoring:
 
 This matches training pipeline assumption:
 UNet -> segmentation map -> lesion presence score
+
+Basic usage:
+
+python analyze_drr.py \
+    --model-path checkpoints/best.pt \
+    --pos-frontal data/test/frontal_pos \
+    --pos-lateral data/test/lateral_pos \
+    --neg-frontal data/test/frontal_neg \
+    --neg-lateral data/test/lateral_neg
 """
 
 import os
@@ -24,7 +33,7 @@ from tqdm import tqdm
 import torch
 import torchvision.transforms as T
 from PIL import Image
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt # type: ignore
 
 from models.unet import UNet
 from analysis.metrics_utils import (
