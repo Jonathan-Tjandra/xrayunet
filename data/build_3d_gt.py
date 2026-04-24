@@ -1,20 +1,46 @@
 """
-Convert NSCLC nodule segmentation masks (.nii.gz) into the 3D ground truth
-format expected by train_3d.py.
+Generate synthetic X-ray (DRR) dataset from CT volumes.
 
-For each CT sample, three files are written to --output-dir:
-    {num}_gt.pt     — (D, H, W) binary float32 tensor of the nodule mask
-    {num}_ct.txt    — absolute path to the CT NIfTI file
-    {num}_mask.txt  — absolute path to the mask NIfTI file
+Modes:
+  1. positive → CT + nodule mask (labelmap used)
+  2. negative → CT only (no labelmap → no nodule signal)
+  3. mixed    → both positive + negative samples
 
-Usage
------
-# Create 3D GT files:
-python data/build_3d_gt.py \
-    --ct-dir   /data/NSCLC/CT \
-    --mask-dir /data/NSCLC/Nodule_Seg \
-    --output-dir /data/gt_3d
+Output:
+  images/x-ray-<id>.png
+  masks/nodule-<id>.png   (only for positive samples)
+
+------------------------------------------------------------
+CLI USAGE
+------------------------------------------------------------
+
+# Positive-only dataset (with nodules)
+python generate_drr_dataset.py \
+    --ct-root /data/NSCLC/CT \
+    --out-img /data/drr/positive_images \
+    --mode positive
+
+# Negative-only dataset (no nodules)
+python generate_drr_dataset.py \
+    --ct-root /data/NSCLC/CT \
+    --out-img /data/drr/negative_images \
+    --mode negative
+
+# Mixed dataset (both positive + negative)
+python generate_drr_dataset.py \
+    --ct-root /data/NSCLC/CT \
+    --out-img /data/drr/mixed_images \
+    --mode mixed
+
+------------------------------------------------------------
+NOTES
+------------------------------------------------------------
+- Positive mode uses CT + segmentation labelmap via DiffDRR.
+- Negative mode renders CT without labelmap (no nodule signal).
+- Mixed mode generates both variants for the same CTs.
+- Output images are padded to 208×208 after normalization.
 """
+
 import os
 import argparse
 import numpy as np
