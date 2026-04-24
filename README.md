@@ -1,176 +1,57 @@
-# XRayUNet: Weakly Supervised Lung Nodule Detection from Synthetic X-rays
+# Improving Chest X-ray Nodule Segmentation via CT-Derived Multi-View Projections
+
+📄 **[Read the full research paper here](./x-ray-nodule-detection.pdf)**
 
 ## Overview
+Detecting lung nodules in chest X-ray images is fundamentally challenging due to overlapping anatomical structures and the scarcity of pixel-level annotations. While Computed Tomography (CT) provides precise 3D nodule labels, it involves higher radiation exposure and is less accessible. 
 
-This project explores lung nodule detection from chest X-rays without requiring real X-ray annotations, using a weakly supervised learning pipeline built entirely on synthetic projections from CT scans.
-
-The core idea is to leverage differentiable ray-driven projection (DRR) to generate realistic X-ray-like images from CT volumes, and train a segmentation network that learns 2D detection consistent with 3D anatomical structure.
-
----
-
-## Motivation
-
-Annotated medical X-ray datasets are limited and expensive, while CT scans provide full 3D supervision.
-
-This project bridges this gap by:
-- Converting CT → synthetic X-rays using differentiable rendering (diffdrr)
-- Training a U-Net on synthetic projections
-- Enforcing 3D consistency through back-projection losses
-- Evaluating generalization using external negative datasets (e.g., LUNA16-style negatives)
+This project bridges that gap by introducing a weakly supervised framework that generates synthetic chest X-ray images (DRRs) and corresponding segmentation masks directly from annotated CT volumes. By leveraging differentiable rendering, multi-view projections, and randomized online augmentations, this pipeline transfers 3D anatomical knowledge into a robust 2D detection system.
 
 ---
 
-## Method Summary
+## 🔬 Research Note & Environment
+This repository presents a consolidated implementation of an experimental pipeline originally developed in a high-performance computing (HPC) environment. It is primarily intended to communicate the core methodology, experimental design, and key components of the framework.
 
-### Synthetic X-ray Generation
+Rather than a production-ready software package, it serves as a reproducible research reference and a flexible starting point for further development and adaptation. Certain components reflect their original HPC-based implementation and may require lightweight modifications when executed in different local environments.
 
-We use differentiable rendering (diffdrr) to generate X-ray projections from CT volumes. Each CT can produce:
-- Frontal view
-- Lateral view
-- Multiple randomized DRR angles
-
-These projections form the training input distribution.
+Reproducing the full pipeline requires access to the NSCLC Radiogenomics and LUNA16 datasets, which are not included in this repository.
 
 ---
 
-### Model Architecture
+## Methodology
 
-A standard U-Net is used:
+### 1. Synthetic X-ray Generation (DiffDRR)
+To overcome the lack of annotated 2D radiographs, we utilize the `DiffDRR` rendering library to simulate X-ray formation from CT volumes. Each CT generates:
+* Frontal and lateral views.
+* Multiple randomized DRR angles to expose the model to diverse viewpoints.
+* Paired 2D binary segmentation masks derived from the same ray-tracing procedure applied to 3D nodule annotations.
 
-- Input: single-view or dual-view X-ray images
-- Output: pixel-wise nodule probability map
-- Image-level score: max activation over segmentation map
+### 2. Network Architecture
+The pipeline employs a **U-Net** architecture to predict pixel-wise nodule probability maps.
+* **Input:** Single-view or multi-view synthetic X-ray projections.
+* **Output:** Pixel-wise probability map.
+* **Image-Level Scoring:** Maximum activation over the segmentation map to capture small nodules.
 
-image_score = max(sigmoid(segmentation_map))
-
-This design ensures that even small localized nodules can trigger a strong global detection signal.
-
----
-
-### Training Strategy
-
-Training is based on three components:
-
-(1) 2D segmentation supervision  
-Synthetic masks are generated from CT projections.
-
-(2) 3D consistency loss  
-Predicted 2D masks are back-projected into 3D space and compared with CT-derived ground truth volumes.
-
-(3) Multi-view learning  
-Each CT is randomly sampled into multiple DRR views per epoch, with heavy augmentation:
-- rotation / scaling
-- brightness and contrast changes
-- Gaussian noise
-- geometric transforms (Kornia-based)
-
-This encourages view-invariant representations.
+### 3. Training & Augmentation Strategy
+Training combines **Dice Loss** and **Binary Cross-Entropy Loss**. To address limited data:
+* **Enhanced Online Augmentation:** Using `Kornia` for dynamic geometric and photometric transformations.
+* **Volumetric Consistency:** Optional 3D back-projection loss to enforce agreement across projections.
 
 ---
 
-### Negative Sampling
+## Key Findings
 
-To ensure robust classification behavior, external negative samples are used:
-- LUNA16-style non-nodule CT-derived DRRs
-- clean synthetic projections without lesions
+Multi-view projections combined with strong augmentation significantly improve detection performance, particularly for anatomically ambiguous lateral X-rays. Increasing projection diversity proves more effective and computationally efficient than enforcing strict 3D reconstruction constraints.
 
-These are used during evaluation for ROC and F1 computation.
-
----
-
-## Evaluation
-
-The evaluation pipeline computes both detection and classification performance.
-
-### Metrics computed:
-- ROC curves (frontal, lateral, combined)
-- AUC
-- F1 score over threshold sweep
-- Best F1 threshold
-- Confusion matrix
-
-### Scoring rule
-
-Each image is reduced to a scalar score:
-
-image_score = max(sigmoid(prediction_map))
-
-This represents the strongest lesion activation in the predicted segmentation map.
-
----
-
-## Outputs
-
-Running evaluation produces:
-
-analysis/
-- roc_frontal.png
-- roc_lateral.png
-- roc_combined.png
-- results.json
-
-Additional logs may include activation statistics and threshold sensitivity behavior.
+For full quantitative results, ROC analyses, and qualitative comparisons across nodule sizes, see the [full paper](./x-ray-nodule-detection.pdf).
 
 ---
 
 ## Code Structure
 
-training/
-- train_multiview.py
-- train_3d.py
-
-analysis/
-- eval.py
-- metric_utils.py
-
-data/
-- generate_xrays.py
-- build_3d_gt.py
-
-inference/
-- test.py
-
-models/
-- unet.py
-- losses.py
-
-utils/
-- augmentation.py
-- drr_utils.py
-
----
-
-## Dataset Structure (Simplified)
-
-Dual-view dataset:
-- frontal/
-- lateral/
-- 3d_gt/
-
-Each sample includes:
-- DRR X-ray images (frontal + lateral)
-- 2D segmentation masks
-- CT volume path
-- 3D ground truth tensor
-
----
-
-## Technical Notes
-
-- Model is segmentation-first, not classification-first
-- Classification emerges from spatial activation maps
-- Multi-view consistency improves robustness significantly
-- 3D supervision acts as a strong regularizer against false positives
-- Evaluation is threshold-based rather than probabilistic calibration
-
----
-
-## Reproducibility & Research Note
-
-This repository serves as a **research implementation** for an end-to-end pipeline. The framework integrates several complex objectives:
-* **Medical Image Synthesis:** Bridging the domain gap between varied imaging modalities.
-* **Weak Supervision:** Leveraging CT-derived labels for scalable training.
-* **Multi-view Learning:** Optimizing feature extraction across disparate perspectives.
-* **3D-Consistent Segmentation:** Maintaining spatial coherence during volumetric training.
-
-The system is designed as an **extensible research testbed**. It prioritizes **modularity and iterative discovery**, reflecting a flexible architecture suited for active exploration rather than a static production pipeline.
+* `training/` – Training loops, multi-view logic, and 3D consistency
+* `analysis/` – ROC, F1 sweeps, and component-level evaluation
+* `data/` – DRR generation and dataset construction
+* `inference/` – Prediction scripts
+* `models/` – U-Net and loss functions
+* `utils/` – Augmentation and DiffDRR utilities
