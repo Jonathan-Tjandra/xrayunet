@@ -10,13 +10,14 @@ This project bridges that gap by introducing a weakly supervised framework that 
 ---
 
 ## 🔬 Research Note & Environment
-This repository presents a consolidated implementation of an experimental pipeline originally developed in a high-performance computing (HPC) environment. It is primarily intended to communicate the core methodology, experimental design, and key components of the framework.
 
-Rather than a production-ready software package, it serves as a reproducible research reference and a flexible starting point for further development and adaptation. Certain components reflect their original HPC-based implementation and may require lightweight modifications when executed in different local environments.
+This repository presents a consolidated implementation of a deep learning pipeline developed in a high-performance computing (HPC) research environment.
 
-Reproducing the full pipeline requires access to the NSCLC Radiogenomics and LUNA16 datasets, which are not included in this repository.
+It is intended primarily as a **methodological and architectural reference**, highlighting key components including a U-Net segmentation model, synthetic DRR generation from CT volumes, multi-view projections, a 3D back-projection consistency loss, and geometric and photometric augmentation for robustness across imaging variations.
 
----
+The codebase has been refactored from its original form into a more modular structure to improve clarity and presentation. As a result, some components differ from the original execution setup, particularly in data handling, file organization, and preprocessing. It is best understood as a reference implementation for training and evaluation rather than a fully integrated end-to-end pipeline.
+
+Access to the NSCLC Radiogenomics and LUNA16 datasets is required to reproduce results.
 
 ## Methodology
 
