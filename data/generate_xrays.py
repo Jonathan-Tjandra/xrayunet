@@ -2,93 +2,57 @@
 Generate synthetic X-ray (DRR) dataset from CT volumes.
 
 Modes:
-  1. positive → CT + nodule mask (labelmap used)
-  2. negative → CT only (no labelmap → no nodule signal)
-  3. mixed    → both positive + negative samples
+  1. positive → CT + nodule mask (supervised signal)
+  2. negative → CT only (no nodule signal)
 
 Output:
   images/x-ray-<id>.png
   masks/nodule-<id>.png   (only for positive)
 
-------------------------------------------------------------
-CLI USAGE
-------------------------------------------------------------
-
-# Positive-only dataset (with nodules)
-python generate_drr_dataset.py \
-    --ct-root /data/NSCLC/CT \
-    --out-img /data/drr/positive_images \
-    --mode positive
-
-# Negative-only dataset (no nodules)
-python generate_drr_dataset.py \
-    --ct-root /data/NSCLC/CT \
-    --out-img /data/drr/negative_images \
-    --mode negative
-
-# Mixed dataset (both positive + negative)
-python generate_drr_dataset.py \
-    --ct-root /data/NSCLC/CT \
-    --out-img /data/drr/mixed_images \
-    --mode mixed
-
-------------------------------------------------------------
-NOTES
-------------------------------------------------------------
-- Positive mode uses CT + segmentation labelmap via DiffDRR.
-- Negative mode renders CT without labelmap (no nodule signal).
-- Mixed mode generates both variants for the same CTs.
-- Output images are padded to 208×208 after normalization.
+CLI:
+  python generate_drr_dataset.py --ct-root ... --out-img ... --out-mask ... --mode positive
 """
 
 import os
 import argparse
 import numpy as np
+import torch
 from PIL import Image
 
-import torch
 from diffdrr.data import read
 from diffdrr.drr import DRR
 from diffdrr.pose import convert
 
 
 # --------------------------
-# config
+# CONFIG
 # --------------------------
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 SDD = 1020
 HEIGHT = 200
 DELTX = 2.0
-
 PAD = 4
 
 
 # --------------------------
-# DRR core
+# DRR GENERATION
 # --------------------------
 def make_drr(ct_path, mask_path=None):
     subject = read(volume=ct_path, labelmap=mask_path)
-
-    drr = DRR(
-        subject,
-        sdd=SDD,
-        height=HEIGHT,
-        delx=DELTX
-    ).to(DEVICE)
+    drr = DRR(subject, sdd=SDD, height=HEIGHT, delx=DELTX).to(DEVICE)
 
     rot = torch.tensor([[torch.pi / 2, 0.0, 0.0]], device=DEVICE)
     xyz = torch.tensor([[0.0, 850.0, 0.0]], device=DEVICE)
 
     pose = convert(rot, xyz, "euler_angles", "ZXY")
-
     img = drr(pose)[0, 0].detach().cpu().numpy()
 
     return img
 
 
 # --------------------------
-# utils
+# UTIL
 # --------------------------
 def normalize(img):
     img = img - img.min()
@@ -105,13 +69,13 @@ def save(img, path):
 
 
 # --------------------------
-# process one CT
+# PROCESS SINGLE CT
 # --------------------------
 def process(ct_path, out_img, out_mask, mode):
     ct_id = os.path.basename(ct_path).replace(".mhd", "")
 
     # ---------------- POSITIVE ----------------
-    if mode in ["positive", "mixed"]:
+    if mode == "positive":
         mask_path = ct_path.replace("CT", "Seg")  # adjust if needed
 
         try:
@@ -120,18 +84,25 @@ def process(ct_path, out_img, out_mask, mode):
 
             save(img, os.path.join(out_img, f"x-ray-{ct_id}.png"))
 
+            # optional mask export
+            if out_mask is not None:
+                mask = make_drr(ct_path, mask_path)
+                mask = (mask > 0).astype(np.uint8)
+                mask = pad(mask)
+                save(mask * 255, os.path.join(out_mask, f"nodule-{ct_id}.png"))
+
             print(f"[POSITIVE] {ct_id}")
 
         except Exception as e:
             print(f"[FAIL POS] {ct_id}: {e}")
 
     # ---------------- NEGATIVE ----------------
-    if mode in ["negative", "mixed"]:
+    elif mode == "negative":
         try:
             img = make_drr(ct_path, None)
             img = pad(normalize(img))
 
-            save(img, os.path.join(out_img, f"x-ray-{ct_id}_neg.png"))
+            save(img, os.path.join(out_img, f"x-ray-{ct_id}.png"))
 
             print(f"[NEGATIVE] {ct_id}")
 
@@ -140,10 +111,12 @@ def process(ct_path, out_img, out_mask, mode):
 
 
 # --------------------------
-# dataset loop
+# DATASET LOOP
 # --------------------------
 def run(root, out_img, out_mask, mode):
     os.makedirs(out_img, exist_ok=True)
+    if out_mask is not None:
+        os.makedirs(out_mask, exist_ok=True)
 
     for sub in sorted(os.listdir(root)):
         sub_path = os.path.join(root, sub)
@@ -153,12 +126,7 @@ def run(root, out_img, out_mask, mode):
 
         for f in os.listdir(sub_path):
             if f.endswith(".mhd") and f.startswith("ct"):
-                process(
-                    os.path.join(sub_path, f),
-                    out_img,
-                    out_mask,
-                    mode
-                )
+                process(os.path.join(sub_path, f), out_img, out_mask, mode)
 
 
 # --------------------------
@@ -168,8 +136,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--ct-root", required=True)
     parser.add_argument("--out-img", required=True)
-    parser.add_argument("--out-mask", required=False, default=None)
-    parser.add_argument("--mode", choices=["positive", "negative", "mixed"], default="positive")
+    parser.add_argument("--out-mask", default=None)
+    parser.add_argument("--mode", choices=["positive", "negative"], required=True)
 
     args = parser.parse_args()
 
