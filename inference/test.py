@@ -1,7 +1,7 @@
 """
-Evaluate a trained UNet on the dual-view DRR test set.
+Evaluate a trained UNet on the test set.
 Supports single- and dual-channel checkpoints, optional 3D Dice evaluation
-via backprojection, and overlay/prediction saving.
+via backprojection, and saving overlay/prediction visualization.
 
 Usage
 -----
