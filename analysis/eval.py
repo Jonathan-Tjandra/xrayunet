@@ -1,7 +1,4 @@
-#!/usr/bin/env python3
 """
-Evaluation script for lung nodule detection from synthetic DRRs.
-
 Computes:
 - ROC curve (frontal, lateral, combined)
 - AUC
@@ -12,9 +9,6 @@ Computes:
 
 Scoring:
     image_score = max(sigmoid(prediction map))
-
-This matches training assumption:
-UNet -> segmentation map -> lesion presence score
 
 Usage:
 

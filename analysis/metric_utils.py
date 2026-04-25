@@ -1,18 +1,4 @@
-"""
-Lightweight metric utilities for binary classification evaluation.
-
-Used by:
-- eval.py
-
-Assumption:
-Each image is reduced to a scalar score:
-    score = max(sigmoid(segmentation_map))
-
-This turns segmentation output into lesion presence classification.
-"""
-
 import numpy as np
-
 
 # -----------------------------
 # Confusion matrix
