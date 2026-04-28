@@ -17,7 +17,7 @@ It is intended primarily as a **methodological and architectural reference**, hi
 
 The codebase has been refactored from its original form into a more modular structure to improve clarity and presentation. As a result, some components differ from the original execution setup, particularly in data handling, file organization, and preprocessing. It is best understood as a reference implementation for training and evaluation rather than a fully integrated end-to-end pipeline.
 
-Access to the NSCLC Radiogenomics and LUNA16 datasets is required to reproduce results.
+Reproduction of results requires the NSCLC Radiogenomics (positive) and LIDC-IDRI (consensus-negative) datasets.
 
 ## Methodology
 
