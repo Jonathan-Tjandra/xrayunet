@@ -101,10 +101,10 @@ def compute_roc(pos, neg, thresholds):
     tpr, fpr = [], []
 
     for t in thresholds:
-        TP = np.sum(pos > t)
-        FN = np.sum(pos <= t)
-        FP = np.sum(neg > t)
-        TN = np.sum(neg <= t)
+        TP = np.sum(pos >= t)
+        FN = np.sum(pos < t)
+        FP = np.sum(neg >= t)
+        TN = np.sum(neg < t)
 
         tpr.append(TP / (TP + FN + 1e-8))
         fpr.append(FP / (FP + TN + 1e-8))
@@ -155,10 +155,16 @@ def main(args):
     pos = np.maximum(pos_f, pos_l)
     neg = np.maximum(neg_f, neg_l)
 
+    # sanity check
+    print("\nScore sanity check:")
+    print(f"pos mean: {pos.mean():.4f}")
+    print(f"neg mean: {neg.mean():.4f}")
+
     y_true = np.concatenate([np.ones(len(pos)), np.zeros(len(neg))])
     y_score = np.concatenate([pos, neg])
 
-    thresholds = np.linspace(0, 1, 200)
+    # better thresholds
+    thresholds = np.unique(y_score)
 
     # -----------------------------
     # ROC
@@ -167,16 +173,23 @@ def main(args):
     fpr, tpr = compute_roc(pos, neg, thresholds)
     auc = auc_trapz(fpr, tpr)
 
+    # FPR @ TPR ≈ 0.9
+    target_tpr = 0.9
+    idx = np.argmin(np.abs(tpr - target_tpr))
+    fpr_at_90_tpr = fpr[idx]
+
     # -----------------------------
     # F1 optimization
     # -----------------------------
     print("Computing F1...")
     best_t, best_f1 = best_threshold_by_f1(thresholds, y_true, y_score)
 
-    y_pred = (y_score > best_t).astype(int)
+    y_pred = (y_score >= best_t).astype(int)
 
     TP, FP, TN, FN = confusion_matrix(y_true, y_pred)
     precision, recall, f1 = precision_recall_f1(TP, FP, FN)
+
+    fpr_at_best = FP / (FP + TN + 1e-8)
 
     # -----------------------------
     # Print results
@@ -191,6 +204,9 @@ def main(args):
 
     print(f"Precision: {precision:.4f}")
     print(f"Recall: {recall:.4f}")
+
+    print(f"FPR @ best threshold: {fpr_at_best:.4f}")
+    print(f"FPR @ TPR≈0.9: {fpr_at_90_tpr:.4f}")
 
     print(f"\nTP={TP}, FP={FP}, TN={TN}, FN={FN}")
 
@@ -213,6 +229,8 @@ def main(args):
         "FP": int(FP),
         "TN": int(TN),
         "FN": int(FN),
+        "fpr_at_best": float(fpr_at_best),
+        "fpr_at_90_tpr": float(fpr_at_90_tpr),
     }
 
     with open(os.path.join(args.out_dir, "results.json"), "w") as f:
