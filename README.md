@@ -13,11 +13,11 @@ This project bridges that gap by introducing a weakly supervised framework that 
 
 This repository presents a consolidated implementation of a deep learning pipeline developed in a high-performance computing (HPC) research environment.
 
-It is intended primarily as a **methodological and architectural reference**, highlighting key components including a U-Net segmentation model, synthetic DRR generation from CT volumes, multi-view projections, a 3D back-projection consistency loss, and geometric and photometric augmentation for robustness across imaging variations.
+It focuses on the methodological and architectural design of the system, including a U-Net segmentation model, synthetic DRR generation from CT volumes, multi-view projections, and a 3D back-projection consistency loss, together with geometric and photometric augmentation to improve robustness across imaging variations.
 
-The codebase has been refactored from its original form into a more modular structure to improve clarity and presentation. As a result, some components differ from the original execution setup, particularly in data handling, file organization, and preprocessing. It is best understood as a reference implementation for training and evaluation rather than a fully integrated end-to-end pipeline.
+The codebase has been reorganized into a modular structure to improve clarity and interpretability, reflecting the core experimental design and model components. Following this restructuring, certain aspects of the original experimental setup—particularly project organization, data handling, and import-level dependencies—may differ from the initial HPC implementation.
 
-Reproduction of results requires the NSCLC Radiogenomics (positive) and LIDC-IDRI (consensus-negative) datasets.
+Reproduction of results assumes access to the NSCLC Radiogenomics (positive) and LIDC-IDRI (consensus-negative) datasets.
 
 ## Methodology
 
